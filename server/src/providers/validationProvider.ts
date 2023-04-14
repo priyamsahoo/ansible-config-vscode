@@ -1,16 +1,16 @@
 import { Diagnostic, DiagnosticSeverity, integer } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { getSections } from "../utils/iniParser";
 import {
   getAllOptionsForSection,
   getAllSections,
 } from "../utils/ansibleConfigGetters";
-// import { getCurrentSection } from "../utils/iniParser";
 import {
+  Item,
   getPresentOptionsForSection,
   getPresentSections,
   parseItems,
 } from "../utils/newParser";
+import _ from "lodash";
 
 export function doValidation(document: TextDocument): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
@@ -55,6 +55,20 @@ export function doValidation(document: TextDocument): Diagnostic[] {
           range: option.range,
           severity: DiagnosticSeverity.Error,
           message: `Unknown option '${option.label}'`,
+        });
+      });
+
+      // // 3. invalidate if duplicate options are found
+      const uniqueOptions = _.uniqBy(currentOptions, "label");
+      const duplicateOptions = currentOptions.filter(
+        (x) => !uniqueOptions.includes(x)
+      );
+
+      duplicateOptions.forEach((option) => {
+        diagnostics.push({
+          range: option.range,
+          severity: DiagnosticSeverity.Error,
+          message: `Option already present in the section: '${option.label}'`,
         });
       });
     }
